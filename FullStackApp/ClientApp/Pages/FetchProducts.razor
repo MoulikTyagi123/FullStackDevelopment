@@ -1,0 +1,83 @@
+@page "/fetchproducts"
+@inject HttpClient HttpClient
+
+<h3>Product List</h3>
+
+<ul>
+    @if (products != null)
+    {
+        foreach (var product in products)
+        {
+            <li>@product.Name - $@product.Price (Stock: @product.Stock)</li>
+        }
+    }
+    else if (errorMessage != null)
+    {
+        <li style="color: red;">Error: @errorMessage</li>
+    }
+    else
+    {
+        <li>Loading...</li>
+    }
+</ul>
+
+@code {
+    private Product[]? products;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Copilot assisted: Using HttpClient to call the /api/productlist endpoint
+            // Note: ServerApp runs on port 5198 (see ServerApp launchSettings.json)
+            var response = await HttpClient.GetAsync("http://localhost:5198/api/productlist");
+
+            // Copilot assisted: Ensuring successful response status
+            response.EnsureSuccessStatusCode();
+
+            // Copilot assisted: Deserializing JSON response into Product array
+            var json = await response.Content.ReadAsStringAsync();
+            products = System.Text.Json.JsonSerializer.Deserialize<Product[]>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"API Request Error: {ex.Message}";
+            Console.WriteLine($"HTTP Error: {ex.Message}");
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            errorMessage = $"JSON Deserialization Error: {ex.Message}";
+            Console.WriteLine($"JSON Error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unexpected Error: {ex.Message}";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Product class for deserialization from API response.
+    /// Copilot assisted: Designed to match the JSON structure from /api/productlist endpoint.
+    /// </summary>
+    public class Product
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public double Price { get; set; }
+        public int Stock { get; set; }
+        public Category? Category { get; set; }
+    }
+
+    /// <summary>
+    /// Category class for nested JSON structure.
+    /// Copilot assisted: Supports the nested category object in API responses.
+    /// </summary>
+    public class Category
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+}
